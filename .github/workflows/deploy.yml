@@ -1,13 +1,17 @@
-name: Deploy to GitHub Pages
+name: Deploy Chatbot to GitHub Pages
 
 on:
   push:
     branches:
-      - main
+      - main  # غيّرها حسب الفرع اللي تشتغل عليه
+
+permissions:
+  contents: write
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -17,12 +21,13 @@ jobs:
         with:
           node-version: 18
 
-      - name: Create env.json
+      - name: Create env.json file
         run: |
-          echo '{ "OPENROUTER_API_KEY": "${{ secrets.OPENROUTER_API_KEY }}" }' > env.json
+          echo '{ "apiKey": "Bearer ${{ secrets.OPENAI_API_KEY }}" }' > env.json
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: gh-pages
           folder: .
+          clean: true
