@@ -24,6 +24,8 @@ jobs:
       - name: Create env.json file
         run: |
           echo '{ "apiKey": "Bearer ${{ secrets.OPENAI_API_KEY }}" }' > env.json
+          cat env.json  # يعرض المحتوى في الـ logs
+
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
