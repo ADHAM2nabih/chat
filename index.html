@@ -64,56 +64,58 @@
     </div>
     
     <script>
-        async function sendMessage() {
-            const userInput = document.getElementById('user-input').value.trim();
-            const chatBox = document.getElementById('chat-box');
-    
-            if (userInput === "") return;
-    
-            const userMessage = document.createElement('p');
-            userMessage.textContent = `🧑‍💻 أنت: ${userInput}`;
-            chatBox.appendChild(userMessage);
-            
-            document.getElementById('user-input').value = '';
-    
-            try {
-                // تحميل الـ API Key من env.json
-                const envResponse = await fetch('env.json');
-                const envData = await envResponse.json();
-                const apiKey = envData.apiKey;
-    
-                const apiUrl = "https://openrouter.ai/api/v1/chat/completions";
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: {
-                        Authorization: apiKey, 
-                        'Content-Type': "application/json",
-                    },
-                    body: JSON.stringify({
-                        model: "deepseek/deepseek-r1-zero:free",
-                        messages: [{ role: 'user', content: userInput }]
-                    }),
-                });
-    
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    
-                const data = await response.json();
-                let botReply = data.choices?.[0]?.message?.content || "🤖 مش عارف يرد حالياً.";
-    
-                botReply = botReply.replace(/[{}]/g, "").replace(/\\boxed\s*/g, "").trim();
-    
-                const botMessage = document.createElement('p');
-                botMessage.textContent = `🤖 البوت: ${botReply}`;
-                chatBox.appendChild(botMessage);
-    
-                chatBox.scrollTop = chatBox.scrollHeight;
-            } catch (error) {
-                console.error('Error:', error);
-                const errorMessage = document.createElement('p');
-                errorMessage.textContent = "⚠️ خطأ: لا يمكن الاتصال بالخادم.";
-                chatBox.appendChild(errorMessage);
-            }
-        }
+       async function sendMessage() {
+    const userInput = document.getElementById('user-input').value.trim();
+    const chatBox = document.getElementById('chat-box');
+
+    if (userInput === "") return;
+
+    const userMessage = document.createElement('p');
+    userMessage.textContent = `🧑‍💻 أنت: ${userInput}`;
+    chatBox.appendChild(userMessage);
+
+    document.getElementById('user-input').value = '';
+
+    try {
+        // جلب مفتاح API من `env.json`
+        const envResponse = await fetch('./env.json');
+        const envData = await envResponse.json();
+        const apiKey = envData.apiKey;
+
+        if (!apiKey) throw new Error("API Key is missing!");
+
+        const apiUrl = "https://openrouter.ai/api/v1/chat/completions";
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                Authorization: apiKey,
+                'Content-Type': "application/json",
+            },
+            body: JSON.stringify({
+                model: "deepseek/deepseek-r1-zero:free",
+                messages: [{ role: 'user', content: userInput }]
+            }),
+        });
+
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+        const data = await response.json();
+        let botReply = data.choices?.[0]?.message?.content || "🤖 مش عارف يرد حالياً.";
+        
+        botReply = botReply.replace(/[{}]/g, "").replace(/\\boxed\s*/g, "").trim();
+
+        const botMessage = document.createElement('p');
+        botMessage.textContent = `🤖 البوت: ${botReply}`;
+        chatBox.appendChild(botMessage);
+
+        chatBox.scrollTop = chatBox.scrollHeight;
+    } catch (error) {
+        console.error('Error:', error);
+        const errorMessage = document.createElement('p');
+        errorMessage.textContent = "⚠️ خطأ: لا يمكن الاتصال بالخادم.";
+        chatBox.appendChild(errorMessage);
+    }
+}
     </script>
     
 </body>
