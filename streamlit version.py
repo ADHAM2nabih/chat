@@ -48,7 +48,7 @@ st.title("🤖 شات بوت")
 def get_bot_response(user_input):
     api_url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {
-        "Authorization": "Bearer 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",
+        "Authorization": "",
         "Content-Type": "application/json"
     }
     payload = {
