@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>شات بوت</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            background: linear-gradient(135deg, #6a38a0, #1c1e21);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        #chat-container {
+            width: 90%;
+            max-width: 600px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+        }
+
+        #chat-box {
+            width: 100%;
+            height: 400px;
+            border-radius: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.3);
+            overflow-y: auto;
+            text-align: right;
+            font-size: 16px;
+            display: flex;
+            flex-direction: column;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            max-width: 75%;
+            padding: 10px;
+            border-radius: 10px;
+            margin: 5px;
+            font-size: 16px;
+            word-wrap: break-word;
+            display: inline-block;
+        }
+
+        .user-message {
+            background: #7a3636;
+            color: white;
+            align-self: flex-end;
+            border-radius: 15px 15px 0 15px;
+        }
+
+        .bot-message {
+            background: #2c3e50;
+            color: white;
+            align-self: flex-start;
+            border-radius: 15px 15px 15px 0;
+        }
+
+        #user-input {
+            width: calc(100% - 70px);
+            padding: 10px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background: #ff9800;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s;
+            width: 60px;
+        }
+
+        button:hover {
+            background: #e68900;
+        }
+
+        .input-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 480px) {
+            #chat-box {
+                height: 350px;
+            }
+            button {
+                font-size: 14px;
+                padding: 8px;
+            }
+            #user-input {
+                font-size: 14px;
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <h1>🤖</h1>
+        <div id="chat-box"></div>
+        <div class="input-container">
+            <input type="text" id="user-input" placeholder="💬 اكتب رسالتك هنا..." onkeypress="handleKeyPress(event)">
+            <button onclick="sendMessage()">إرسال 🚀</button>
+        </div>
+    </div>
+    
+    <script>
+        function handleKeyPress(event) {
+            if (event.key === "Enter") sendMessage();
+        }
+
+        async function sendMessage() {
+            const userInput = document.getElementById('user-input').value.trim();
+            const chatBox = document.getElementById('chat-box');
+
+            if (userInput === "") return;
+
+            // عرض رسالة المستخدم كفقاعة
+            const userMessage = document.createElement('div');
+            userMessage.classList.add('message', 'user-message');
+            userMessage.textContent = `🧑‍💻 : ${userInput}`;
+            chatBox.appendChild(userMessage);
+
+            document.getElementById('user-input').value = '';
+
+            // عرض مؤشر الكتابة
+            const typingMessage = document.createElement('div');
+            typingMessage.classList.add('message', 'bot-message');
+            typingMessage.textContent = "🤖 البوت يكتب... ⏳";
+            chatBox.appendChild(typingMessage);
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            try {
+                const apiUrl = "https://openrouter.ai/api/v1/chat/completions";
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        Authorization: 'Bearer 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',
+                        'Content-Type': "application/json",
+                    },
+                    body: JSON.stringify({
+                        model: "meta-llama/llama-3.2-1b-instruct:free",
+                        messages: [{ role: 'user', content: userInput }]
+                    }),
+                });
+
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                const data = await response.json();
+                let botReply = data.choices?.[0]?.message?.content || "🤖 مش عارف يرد حالياً.";
+
+                // إزالة المؤشر وإضافة الرد الحقيقي
+                chatBox.removeChild(typingMessage);
+
+                // تحسين شكل النص وإزالة الرموز غير المرغوبة
+                botReply = botReply.replace(/[{}]/g, "").replace(/\\boxed\s*/g, "").trim();
+
+                // إنشاء فقاعة رسالة البوت
+                const botMessage = document.createElement('div');
+                botMessage.classList.add('message', 'bot-message');
+                botMessage.textContent = `🤖 : ${botReply}`;
+                chatBox.appendChild(botMessage);
+
+                chatBox.scrollTop = chatBox.scrollHeight;
+            } catch (error) {
+                console.error('Error:', error);
+
+                chatBox.removeChild(typingMessage); // إزالة المؤشر في حالة الخطأ
+
+                const errorMessage = document.createElement('div');
+                errorMessage.classList.add('message', 'bot-message');
+                errorMessage.textContent = "⚠️ خطأ: لا يمكن الاتصال بالخادم.";
+                chatBox.appendChild(errorMessage);
+            }
+        }
+    </script>
+</body>
+</html>

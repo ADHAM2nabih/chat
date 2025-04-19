@@ -1,111 +1,92 @@
 import streamlit as st
-from openai import OpenAI
-import os
-from dotenv import load_dotenv
+from streamlit_chat import message
+import requests
+import time
 
-# Load environment variables
-load_dotenv()
-
-# Initialize the client with your API key
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY")
+st.set_page_config(
+    page_title="شات بوت بالعربية",
+    page_icon="🤖",
+    layout="wide"
 )
 
-# Custom CSS for Arabic chat interface
 st.markdown("""
 <style>
     .stApp {
         background: linear-gradient(135deg, #6a38a0, #1c1e21);
         color: white;
-        text-align: center;
+    }
+    .stTextInput>div>div>input {
+        color: white;
+        background-color: rgba(255, 255, 255, 0.2);
+    }
+    .stButton>button {
+        background-color: #ff9800;
+        color: white;
+        border: none;
+        transition: 0.3s;
+    }
+    .stButton>button:hover {
+        background-color: #e68900;
     }
     .chat-container {
         background: rgba(255, 255, 255, 0.2);
         backdrop-filter: blur(10px);
         border-radius: 15px;
-        padding: 15px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    }
-    .user-message {
-        background: #7a3636;
-        color: white;
-        border-radius: 15px 15px 0 15px;
-        padding: 10px;
-        margin: 5px;
-        max-width: 75%;
-        float: right;
-        clear: both;
-    }
-    .bot-message {
-        background: #2c3e50;
-        color: white;
-        border-radius: 15px 15px 15px 0;
-        padding: 10px;
-        margin: 5px;
-        max-width: 75%;
-        float: left;
-        clear: both;
-    }
-    .stTextInput>div>div>input {
-        text-align: right;
+        padding: 20px;
+        margin-bottom: 20px;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Initialize chat history
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+if 'generated' not in st.session_state:
+    st.session_state['generated'] = []
+if 'past' not in st.session_state:
+    st.session_state['past'] = []
 
-# Title
 st.title("🤖 شات بوت")
 
-# Display chat messages
-with st.container():
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(f'<div class="{message["role"]}-message">{message["content"]}</div>', 
-                       unsafe_allow_html=True)
+def get_bot_response(user_input):
+    api_url = "https://openrouter.ai/api/v1/chat/completions"
+    headers = {
+        "Authorization": "Bearer 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",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": "meta-llama/llama-3.2-1b-instruct:free",
+        "messages": [{"role": "user", "content": user_input}]
+    }
+    
+    try:
+        response = requests.post(api_url, headers=headers, json=payload)
+        response.raise_for_status()
+        data = response.json()
+        bot_reply = data['choices'][0]['message']['content']
+        return bot_reply.replace(/[{}]/g, "").replace(/\\boxed\s*/g, "").strip()
+    except Exception as e:
+        return f"⚠️ خطأ: لا يمكن الاتصال بالخادم. {str(e)}"
 
-# User input
-if prompt := st.chat_input("💬 اكتب رسالتك هنا..."):
-    # Add user message to chat history
-    st.session_state.messages.append({"role": "user", "content": prompt})
+with st.container():
+    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
     
-    # Display user message
-    with st.chat_message("user"):
-        st.markdown(f'<div class="user-message">🧑‍💻 : {prompt}</div>', unsafe_allow_html=True)
+    if st.session_state['generated']:
+        for i in range(len(st.session_state['generated'])-1, -1, -1):
+            message(st.session_state["generated"][i], key=str(i), is_user=False)
+            message(st.session_state['past'][i], is_user=True, key=str(i) + '_user')
     
-    # Display assistant response
-    with st.chat_message("assistant"):
-        message_placeholder = st.empty()
-        message_placeholder.markdown('<div class="bot-message">🤖 البوت يكتب... ⏳</div>', 
-                                   unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+with st.form(key='chat_form', clear_on_submit=True):
+    col1, col2 = st.columns([5, 1])
+    with col1:
+        user_input = st.text_input("💬 اكتب رسالتك هنا...", key='input', value="")
+    with col2:
+        submit_button = st.form_submit_button(label='إرسال 🚀')
+    
+    if submit_button and user_input:
+        st.session_state.past.append(user_input)
         
-        try:
-            # Call the API
-            response = client.chat.completions.create(
-                model="meta-llama/llama-3.2-1b-instruct:free",
-                messages=[{"role": m["role"], "content": m["content"]} 
-                         for m in st.session_state.messages]
-            )
-            
-            full_response = response.choices[0].message.content
-            # Clean up the response
-            full_response = full_response.replace(/[{}]/g, "").replace(/\\boxed\s*/g, "").trim()
-            
-            # Update the placeholder with the actual response
-            message_placeholder.markdown(
-                f'<div class="bot-message">🤖 : {full_response}</div>', 
-                unsafe_allow_html=True
-            )
-            
-            # Add assistant response to chat history
-            st.session_state.messages.append({"role": "assistant", "content": full_response})
-            
-        except Exception as e:
-            message_placeholder.markdown(
-                '<div class="bot-message">⚠️ خطأ: لا يمكن الاتصال بالخادم.</div>', 
-                unsafe_allow_html=True
-            )
-            st.error(f"Error: {str(e)}")
+        with st.spinner("🤖 البوت يكتب... ⏳"):
+            bot_response = get_bot_response(user_input)
+            st.session_state.generated.append(bot_response)
+        
+        st.experimental_rerun()

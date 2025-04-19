@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Graph & Dijkstra</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        svg { border: 1px solid black; }
+        button, input { margin: 5px; padding: 5px; }
+    </style>
+</head>
+<body>
+    <h2>Random Graph Generator with Dijkstra's Algorithm</h2>
+    <label>Vertices: <input type="number" id="vertices" value="5" min="2"></label>
+    <label>Edges: <input type="number" id="edges" value="7" min="1"></label>
+    <button onclick="toggleDirected()">Toggle Directed</button>
+    <button onclick="generateGraph()">Generate Graph</button>
+    <button onclick="runDijkstra()">Run Dijkstra</button>
+    <svg width="600" height="400"></svg>
+    <p id="result"></p>
+    
+    <script>
+        let directed = true;
+        let graph = {};
+        let nodes = [];
+        let edges = [];
+        
+        function toggleDirected() {
+            directed = !directed;
+            alert(`Graph is now ${directed ? 'Directed' : 'Undirected'}`);
+        }
+        
+        function generateGraph() {
+            const numVertices = parseInt(document.getElementById("vertices").value);
+            const numEdges = parseInt(document.getElementById("edges").value);
+            nodes = d3.range(numVertices).map(d => ({ id: d }));
+            edges = [];
+            graph = {};
+            
+            for (let i = 0; i < numVertices; i++) graph[i] = [];
+            
+            for (let i = 0; i < numEdges; i++) {
+                let u = Math.floor(Math.random() * numVertices);
+                let v = Math.floor(Math.random() * numVertices);
+                let w = Math.floor(Math.random() * 10) + 1;
+                if (u !== v) {
+                    edges.push({ source: u, target: v, weight: w });
+                    graph[u].push([v, w]);
+                    if (!directed) {
+                        edges.push({ source: v, target: u, weight: w });
+                        graph[v].push([u, w]);
+                    }
+                }
+            }
+            drawGraph();
+        }
+        
+        function drawGraph() {
+            d3.select("svg").selectAll("*").remove();
+            const svg = d3.select("svg");
+            const link = svg.selectAll("line").data(edges).enter().append("line")
+                .attr("x1", d => 100 + d.source * 80)
+                .attr("y1", d => 100 + (d.source % 5) * 50)
+                .attr("x2", d => 100 + d.target * 80)
+                .attr("y2", d => 100 + (d.target % 5) * 50)
+                .attr("stroke", "black");
+            
+            svg.selectAll("text.edge-label").data(edges).enter().append("text")
+                .attr("x", d => (100 + d.source * 80 + 100 + d.target * 80) / 2)
+                .attr("y", d => (100 + (d.source % 5) * 50 + 100 + (d.target % 5) * 50) / 2)
+                .text(d => d.weight)
+                .attr("fill", "red");
+            
+            const node = svg.selectAll("circle").data(nodes).enter().append("circle")
+                .attr("cx", d => 100 + d.id * 80)
+                .attr("cy", d => 100 + (d.id % 5) * 50)
+                .attr("r", 15)
+                .attr("fill", "lightblue");
+            
+            svg.selectAll("text.node-label").data(nodes).enter().append("text")
+                .attr("x", d => 100 + d.id * 80)
+                .attr("y", d => 100 + (d.id % 5) * 50)
+                .attr("dy", 5)
+                .attr("text-anchor", "middle")
+                .text(d => d.id);
+        }
+        
+        function runDijkstra() {
+            let dist = {};
+            let pq = [[0, 0]];
+            for (let i in graph) dist[i] = Infinity;
+            dist[0] = 0;
+            
+            while (pq.length) {
+                pq.sort((a, b) => a[1] - b[1]);
+                let [u, d] = pq.shift();
+                if (d > dist[u]) continue;
+                
+                for (let [v, w] of graph[u]) {
+                    let newDist = dist[u] + w;
+                    if (newDist < dist[v]) {
+                        dist[v] = newDist;
+                        pq.push([v, newDist]);
+                    }
+                }
+            }
+            document.getElementById("result").innerText = `Shortest distances from node 0: ${JSON.stringify(dist)}`;
+        }
+    </script>
+</body>
+</html>
