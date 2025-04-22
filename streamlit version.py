@@ -1,7 +1,7 @@
 import streamlit as st
 from streamlit_chat import message
 import requests
-import re  # Added for regex handling
+import re
 import time
 
 st.set_page_config(
@@ -52,11 +52,11 @@ def get_bot_response(user_input):
     headers = {
         "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://your-website.com",  # Update with your URL
-        "X-Title": "Arabic Chatbot"  # Update with your app name
+        "HTTP-Referer": "https://your-website.com",
+        "X-Title": "Arabic Chatbot"
     }
     payload = {
-        "model": "meta-llama/llama-3-70b-instruct",  # Updated to current model name
+        "model": "meta-llama/llama-3-70b-instruct",
         "messages": [{"role": "user", "content": user_input}]
     }
     
@@ -65,7 +65,6 @@ def get_bot_response(user_input):
         response.raise_for_status()
         data = response.json()
         bot_reply = data['choices'][0]['message']['content']
-        # Fixed regex syntax for Python
         return re.sub(r'[{}]', '', re.sub(r'\\boxed\s*', '', bot_reply)).strip()
     except requests.exceptions.RequestException as e:
         return f"⚠️ خطأ في الاتصال: {str(e)}"
@@ -100,4 +99,5 @@ with st.form(key='chat_form', clear_on_submit=True):
             bot_response = get_bot_response(user_input)
             st.session_state.generated.append(bot_response)
         
-        st.experimental_rerun()
+        # Use the current Streamlit rerun method
+        st.rerun()
