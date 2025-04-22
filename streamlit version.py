@@ -1,6 +1,7 @@
 import streamlit as st
 from streamlit_chat import message
 import requests
+import re  # Added for regex handling
 import time
 
 st.set_page_config(
@@ -38,21 +39,24 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Initialize session state
 if 'generated' not in st.session_state:
-    st.session_state['generated'] = []
+    st.session_state.generated = []
 if 'past' not in st.session_state:
-    st.session_state['past'] = []
+    st.session_state.past = []
 
 st.title("🤖 شات بوت")
 
 def get_bot_response(user_input):
     api_url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {
-        "Authorization": "",
-        "Content-Type": "application/json"
+        "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://your-website.com",  # Update with your URL
+        "X-Title": "Arabic Chatbot"  # Update with your app name
     }
     payload = {
-        "model": "meta-llama/llama-3.2-1b-instruct:free",
+        "model": "meta-llama/llama-3-70b-instruct",  # Updated to current model name
         "messages": [{"role": "user", "content": user_input}]
     }
     
@@ -61,20 +65,27 @@ def get_bot_response(user_input):
         response.raise_for_status()
         data = response.json()
         bot_reply = data['choices'][0]['message']['content']
-        return bot_reply.replace(/[{}]/g, "").replace(/\\boxed\s*/g, "").strip()
+        # Fixed regex syntax for Python
+        return re.sub(r'[{}]', '', re.sub(r'\\boxed\s*', '', bot_reply)).strip()
+    except requests.exceptions.RequestException as e:
+        return f"⚠️ خطأ في الاتصال: {str(e)}"
+    except KeyError:
+        return "⚠️ خطأ في معالجة الرد من الخادم"
     except Exception as e:
-        return f"⚠️ خطأ: لا يمكن الاتصال بالخادم. {str(e)}"
+        return f"⚠️ خطأ غير متوقع: {str(e)}"
 
+# Chat container
 with st.container():
     st.markdown('<div class="chat-container">', unsafe_allow_html=True)
     
-    if st.session_state['generated']:
-        for i in range(len(st.session_state['generated'])-1, -1, -1):
-            message(st.session_state["generated"][i], key=str(i), is_user=False)
-            message(st.session_state['past'][i], is_user=True, key=str(i) + '_user')
+    if st.session_state.generated:
+        for i in range(len(st.session_state.generated)-1, -1, -1):
+            message(st.session_state.generated[i], key=str(i), is_user=False)
+            message(st.session_state.past[i], is_user=True, key=str(i) + '_user')
     
     st.markdown('</div>', unsafe_allow_html=True)
 
+# Input form
 with st.form(key='chat_form', clear_on_submit=True):
     col1, col2 = st.columns([5, 1])
     with col1:
