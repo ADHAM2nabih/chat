@@ -56,7 +56,7 @@ def get_bot_response(user_input):
         "X-Title": "Arabic Chatbot"
     }
     payload = {
-        "model": "meta-llama/llama-3-70b-instruct",
+        "model": "qwen/qwen-2.5-7b-instruct:free",
         "messages": [{"role": "user", "content": user_input}]
     }
     
